@@ -268,14 +268,59 @@ broadcast() {
 	send 'tellraw @a { text: "[B] ", color: "red", extra: [ { text: "'$1'", color: "light_purple" } ] }'
 }
 
+usage() {
+	echo "UHC script by itsmartin_"
+	echo ""
+	echo "Usage: $0 <command> [parameters]"
+	echo ""
+	echo "Match setup and server management commands:"
+	echo "  start_server   - Starts the server running in the background"
+	echo "  stop_server    - Sends the 'stop' command to the server"
+	echo "  watch          - Watch the server console in real-time (ctrl-c to stop)"
+	echo "  setup          - Sets up the world - set appropriate gamerules, create spawn"
+	echo "                   platform, etc"
+	echo "  open           - Opens the server to all (disabled whitelist)"
+	echo "  close          - Closes the server (whitelists all online players and enables"
+	echo "                   the whitelist)"
+	echo "  ready          - Begins the UHC match (for all players in adventure mode)"
+	echo "                   after a 60 second countdown"
+	echo ""
+	echo "Utility commands:"
+	echo "  send <cmd>     - Sends the specified command to the server"
+	echo "  tpspawn        - Teleports all adventure mode players back to the spawn"
+	echo "                   platform"
+	echo "  permaday       - Makes it permanently midday"
+	echo "  permanight     - Makes it permanently midnight"
+	echo "  normalday      - Restores normal day/night cycling (doesn't immediately change the time)"
+	echo "  time <t>       - Set the in-game time to <t>"
+	echo "  clearwhitelist - Clears the current whitelist"
+	echo "  b <msg>        - Broadcast a message to all players the server"
+}
+
+
+
+
+if ("$1" == "start_server"); then
+	if ! running; then
+		start_server
+	else
+		echo "Server is already running!"
+	fi
+	exit(0)
+fi
+
+if (-z "$1"); then
+	usage
+	exit(0)
+fi
+
+if (! running); then
+	echo "The server is not running! Use $0 start_server to run it"
+	exit(1)
+fi
+
+
 case "$1" in
-	start_server)
-		if ! running; then
-			start_server
-		else
-			echo "Server is already running!"
-		fi
-		;;
 	stop_server)
 		stop_server
 		;;
@@ -332,33 +377,7 @@ case "$1" in
 		;;
 
 	*)
-		echo "UHC script by itsmartin_"
-		echo ""
-		echo "Usage: $0 <command> [parameters]"
-		echo ""
-		echo "Match setup and server management commands:"
-		echo "  start_server   - Starts the server running in the background"
-		echo "  stop_server    - Sends the 'stop' command to the server"
-		echo "  watch          - Watch the server console in real-time (ctrl-c to stop)"
-		echo "  setup          - Sets up the world - set appropriate gamerules, create spawn"
-		echo "                   platform, etc"
-		echo "  open           - Opens the server to all (disabled whitelist)"
-		echo "  close          - Closes the server (whitelists all online players and enables"
-		echo "                   the whitelist)"
-		echo "  ready          - Begins the UHC match (for all players in adventure mode)"
-		echo "                   after a 60 second countdown"
-		echo ""
-		echo "Utility commands:"
-		echo "  send <cmd>     - Sends the specified command to the server"
-		echo "  tpspawn        - Teleports all adventure mode players back to the spawn"
-		echo "                   platform"
-		echo "  permaday       - Makes it permanently midday"
-		echo "  permanight     - Makes it permanently midnight"
-		echo "  normalday      - Restores normal day/night cycling (doesn't immediately change the time)"
-		echo "  time <t>       - Set the in-game time to <t>"
-		echo "  clearwhitelist - Clears the current whitelist"
-		echo "  b <msg>        - Broadcast a message to all players the server"
-
-
+		usage
+		;;
 esac
 
