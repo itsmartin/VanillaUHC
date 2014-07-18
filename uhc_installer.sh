@@ -70,7 +70,7 @@ fi
 if [ ! -d world ]; then
 	if [ -n "$WORLD_URL" ]; then
 		echo "Downloading world..."
-		wget -nv -o world.tgz "$WORLD_URL" || fail "Could not download world!"
+		wget -nv -O world.tgz "$WORLD_URL" || fail "Could not download world!"
 		echo "Decompressing world..."
 		tar -xzf world.tgz || fail "Could not decompress world!"
 	fi
