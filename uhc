@@ -1,0 +1,364 @@
+#!/bin/bash
+
+# Default start command, this can be overridden in uhc.cfg
+START_COMMAND="java -Xms1G -Xmx1G -jar minecraft_server.jar nogui"
+
+# Check if a config file exists, and read it if so
+
+if [ -s uhc.cfg ]; then
+	. uhc.cfg
+fi
+
+running() {
+	if screen -ls | grep -cq uhc; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+send() {
+	screen -S uhc -p 0 -X stuff "`printf "$*\r"`"
+}
+
+
+
+start_server() {
+	echo Starting server with $START_COMMAND
+	screen -LdmS uhc $START_COMMAND
+}
+
+stop_server() {
+	send stop
+	echo Sent stop command to server
+}
+
+
+	
+setup() {
+	send 'setworldspawn 0 180 0'
+	send 'gamerule doDaylightCycle false'
+	send 'time set 6000'
+	send 'weather clear 1000000'
+	send 'difficulty 3'
+	send 'gamerule naturalRegeneration false'
+	send 'defaultgamemode 2'
+	send 'gamemode 1 @a'
+	send 'tp @a 0 182 0'
+	echo "Waiting 15 seconds for world to load..."
+	sleep 15
+	send 'fill -11 180 -11 11 190 11 barrier 0 hollow'
+	send 'fill -10 180 -10 10 191 10 air 0 replace'
+	send 'fill -10 180 -10 10 180 10 glass 0 replace'
+	# Make spectator pad
+	send 'setblock 0 180 0 command_block 0 replace {Command: "gamemode 3 @p[m=0]"}'
+	send 'setblock 0 181 0 heavy_weighted_pressure_plate 0 replace'
+}
+
+permaday() {
+	send 'gamerule doDaylightCycle false'
+	send 'time set 6000'
+	echo "Permaday enabled"
+}
+permanight() {
+	send 'gamerule doDaylightCycle false'
+	send 'time set 18000'
+	echo "Permanight enabled"
+}
+normalday() {
+	send 'gamerule doDaylightCycle true'
+	echo "Normal day/night restored"
+}
+timeset() {
+	send 'time set '$1
+	echo "Time set to $1"
+}
+
+do_freeze() {
+	send 'clear @a[m=2]'
+	send 'effect @a[m=2] 2 10000 7 true'
+	send 'effect @a[m=2] 8 10000 128 true'
+	send 'effect @a[m=2] 10 1000000 2 true'
+	send 'effect @a[m=2] 23 1000000 20 true'
+}
+
+do_unfreeze() {
+	send 'effect @a[m=2] 2 0'
+	send 'effect @a[m=2] 8 0'
+	send 'effect @a[m=2] 10 0'
+	send 'effect @a[m=2] 23 0'
+
+}
+
+do_scatter() {
+	maxrange=1750
+	spacing=500
+	if [ -n "$RADIUS" ]; then
+		maxrange=$((RADIUS-250))
+	fi
+	if [ "$spacing" -gt "$((maxrange-1))" ]; then
+		spacing=$((maxrange-1))
+	fi
+	if [ -z "$TEAMS" ]; then
+		# Teams not specified, assume FFA.
+		TEAMS="false"
+	fi
+	send 'spreadplayers 0 0 '$spacing' '$maxrange' '$TEAMS' @a[m=2]'
+}
+
+do_scoreboard() {
+	send 'scoreboard objectives add Health health'
+	send 'scoreboard objectives add Kills playerKillCount'
+	send 'scoreboard objectives setdisplay sidebar Kills'
+	send 'scoreboard objectives setdisplay list Health'
+}
+
+do_countdown() {
+	# Display a 60 second countdown, with sounds (not working) for 3 2 1 go.
+
+	send 'title @a reset'
+	send 'title @a subtitle {text:"UHC starts in 1 minute", color:"green"}'
+	send 'title @a title {text:"Get ready!"}'
+	sleep 5
+	send 'title @a subtitle {text:""}'
+	send 'title @a times 0 100 0'
+	for i in `seq 55 -1 4`; do
+		send 'title @a title {text:"'$i'"}'
+		sleep 1
+	done
+	send 'title @a title {text:"3", color:"red"}'
+	send 'playsound note.pling @a ~ ~ ~ 1 1'
+	sleep 1
+	send 'title @a title {text:"2", color:"red"}'
+	send 'playsound note.pling @a ~ ~ ~ 1 1'
+	sleep 1
+	send 'title @a title {text:"1", color:"red"}'
+	send 'playsound note.pling @a ~ ~ ~ 1 1'
+	sleep 1
+	send 'title @a times 0 0 40'
+	send 'title @a title {text:"GO!", color: "green"}'
+	send 'playsound note.pling @a ~ ~ ~ 1 2'
+}
+
+do_kit() {
+	# Give players a kit of stone tools and a 5-shot bow.
+
+	send 'clear @a[m=2]'
+	send 'replaceitem entity @a[m=2] slot.hotbar.0 stone_sword'
+	send 'replaceitem entity @a[m=2] slot.hotbar.1 bow 1 380'
+	send 'replaceitem entity @a[m=2] slot.hotbar.2 stone_pickaxe'
+	send 'replaceitem entity @a[m=2] slot.hotbar.3 stone_axe'
+	send 'replaceitem entity @a[m=2] slot.hotbar.4 stone_shovel'
+	send 'replaceitem entity @a[m=2] slot.hotbar.5 arrow 5'
+	send 'replaceitem entity @a[m=2] slot.hotbar.6 bread 2'
+	send 'replaceitem entity @a[m=2] slot.armor.chest leather_chestplate'
+}
+
+
+do_begin() {
+	# This is called at GO!
+
+	# Set spawnpoints for everyone above the spectator mode command block
+	send 'spawnpoint @a 0 182 0'
+
+	# Give all the players resistance for 30 seconds
+	send 'effect @a[m=2] 11 30 5'
+
+	# Fill hunger for all players
+	send 'effect @a[m=2] 23 1 20'
+
+	# Heal all players
+	send 'effect @a[m=2] 6 1 20'
+
+	# Put all players into survival
+	send 'gamemode 0 @a[m=2]'
+
+	# Set time to 0 and start day cycle
+	send 'time set 0'
+	send 'gamerule doDaylightCycle true'
+
+	# Start shrinking the worldborder over 2 hours down to 200
+	send 'worldborder set 200 7200'
+
+}
+
+ready() {
+	# Keep things quiet for any ops on the server
+	send 'gamerule sendCommandFeedback false'
+
+	# Set the worldborder to the initial value
+
+	diameter=4000
+	if [ -n "$RADIUS" ]; then
+		diameter=$((RADIUS*2))
+	fi
+
+	echo "Setting diameter to $diameter"
+	send 'worldborder center 0 0'
+	send "worldborder set $diameter"
+
+	do_freeze
+	do_scoreboard
+	do_scatter
+	do_countdown
+	do_unfreeze
+	do_kit
+	do_begin
+
+	# Start the uhc timer in a new screen session
+	screen -S uhc -X screen 1 ./uhc timer
+}
+
+timer() {
+	echo "UHC timer script started!"
+	minutes=0
+	while true; do
+		sleep 1200
+		((minutes+=20))
+		send 'tellraw @a { text: "Match time: ", color: "green", extra: [ { text: "'$minutes' minutes", color: "gold" } ] }'
+	done
+
+}
+
+close() {
+	echo Grabbing names to whitelist
+	send 'list'
+	sleep 2
+	tail -n 10 logs/latest.log > playerlist.tmp
+	while read line; do
+		if [ "$found" == "1" ]; then
+			players=$line
+		fi
+		if [[ "$line" == *"players online:"* ]]; then
+			found=1
+		else
+			found=0
+		fi
+	done <playerlist.tmp
+
+	# Split at :, take last segment
+	IFS=':' read -a array <<< "$players"
+
+	# Split at ", "
+	players="${array[-1]}"
+	IFS=", " read -a array <<< "$players"
+
+	for player in "${array[@]}"; do
+		echo "Whitelisting $player"
+		send 'whitelist add '$player
+	done
+	echo "Enabling whitelist"
+	send 'whitelist on'
+
+}
+
+open() {
+	# Open the server
+	echo "Disabling whitelist"
+	send 'whitelist off'
+}
+
+tpspawn() {
+	# Teleport everyone to spawn platform
+	echo "Teleporting all players to spawn"
+	send 'tp @a[m=2] 0 182 0'
+}
+
+broadcast() {
+	send 'tellraw @a { text: "[B] ", color: "red", extra: [ { text: "'$1'", color: "light_purple" } ] }'
+}
+
+case "$1" in
+	start_server)
+		if ! running; then
+			start_server
+		else
+			echo "Server is already running!"
+		fi
+		;;
+	stop_server)
+		stop_server
+		;;
+	setup)
+		setup
+		;;
+	ready)
+		ready
+		;;
+	timer)
+		timer
+		;;
+	close)
+		close
+		;;
+	open)
+		open
+		;;
+	tpspawn)
+		tpspawn
+		;;
+	permaday)
+		permaday
+		;;
+	permanight)
+		permanight
+		;;
+	normalday)
+		normalday
+		;;
+	time)
+		timeset $2
+		;;
+	send)
+		shift
+		send "$*"
+		;;
+	watch)
+		if running; then
+			tail -f logs/latest.log
+		else
+			echo Server is not running
+		fi
+		;;
+	clearwhitelist)
+		rm -f whitelist.txt
+		echo "[]" >whitelist.json
+		send 'whitelist reload'
+		echo "Whitelist cleared"
+		;;
+	b)
+		shift
+		broadcast "$*"
+		;;
+
+	*)
+		echo "UHC script by itsmartin_"
+		echo ""
+		echo "Usage: $0 <command> [parameters]"
+		echo ""
+		echo "Match setup and server management commands:"
+		echo "  start_server   - Starts the server running in the background"
+		echo "  stop_server    - Sends the 'stop' command to the server"
+		echo "  watch          - Watch the server console in real-time (ctrl-c to stop)"
+		echo "  setup          - Sets up the world - set appropriate gamerules, create spawn"
+		echo "                   platform, etc"
+		echo "  open           - Opens the server to all (disabled whitelist)"
+		echo "  close          - Closes the server (whitelists all online players and enables"
+		echo "                   the whitelist)"
+		echo "  ready          - Begins the UHC match (for all players in adventure mode)"
+		echo "                   after a 60 second countdown"
+		echo ""
+		echo "Utility commands:"
+		echo "  send <cmd>     - Sends the specified command to the server"
+		echo "  tpspawn        - Teleports all adventure mode players back to the spawn"
+		echo "                   platform"
+		echo "  permaday       - Makes it permanently midday"
+		echo "  permanight     - Makes it permanently midnight"
+		echo "  normalday      - Restores normal day/night cycling (doesn't immediately change the time)"
+		echo "  time <t>       - Set the in-game time to <t>"
+		echo "  clearwhitelist - Clears the current whitelist"
+		echo "  b <msg>        - Broadcast a message to all players the server"
+
+
+esac
+

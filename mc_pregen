@@ -1,0 +1,44 @@
+#!/bin/bash
+
+MINECRAFT=minecraft_server.jar
+MAX=$1
+STEP=350
+SCREEN_ID=mc_pregen
+MAPDIR=world
+
+wait_for_finish() {
+	while screen -ls | grep -cq $SCREEN_ID; do
+		echo -n "."
+		sleep 1
+	done
+
+}
+
+send() {
+	screen -S $SCREEN_ID -p 0 -X stuff "`printf "$1\r"`"
+}
+
+pregen() {
+	echo -n "$1,$2"
+	screen -LdmS $SCREEN_ID java -Xms1024m -Xmx1024m -Xincgc -jar minecraft_server.jar nogui
+	send 'setworldspawn '$1' 64 '$2
+	send 'stop'
+	wait_for_finish
+	echo " Done"
+}
+
+
+echo Pregenerating!
+
+# If we want to reset the process: rm ${MAPDIR}/*.point
+# Step through at adjustable step and max, the spawn area renders approx 400 square meters
+seq -${MAX} ${STEP} ${MAX} | while read X ; do \
+	seq -${MAX} ${STEP} ${MAX} | while read Z ; do \
+		[ -f "${MAPDIR}/${X}.${Z}.point" ] && continue
+		pregen $X $Z    
+		touch "${MAPDIR}/${X}.${Z}.point"
+	done
+done
+# Reset spawn to 0,0
+pregen 0 0
+
