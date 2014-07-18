@@ -306,17 +306,17 @@ if ("$1" == "start_server"); then
 	else
 		echo "Server is already running!"
 	fi
-	exit(0)
+	exit 0
 fi
 
 if (-z "$1"); then
 	usage
-	exit(0)
+	exit 0
 fi
 
 if (! running); then
 	echo "The server is not running! Use $0 start_server to run it"
-	exit(1)
+	exit 1
 fi
 
 
