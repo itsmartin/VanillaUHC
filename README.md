@@ -15,10 +15,10 @@ At present, only limited testing has been done, so please use with care.
 The files
 ---------
 
-**mc_pregen** <radius> - pre-generates a world to the specified size. Should be run from within the server directory. Expects the server
+**mc_pregen** *radius* - pre-generates a world to the specified size. Should be run from within the server directory. Expects the server
 to be called *minecraft_server.jar*.
 
-**uhc** <command> [params] - script to run the UHC. Run **uhc** on its own for a list of options.
+**uhc** *command* [params] - script to run the UHC. Run **uhc** on its own for a list of options.
 
 The server is run in a screen session. If you are already using screen for something else, this *might* cause unexpected behaviours.
 I haven't tested it.
@@ -33,6 +33,6 @@ Setup
 -----
 
 * Create an empty folder for your server to run in
-* Tweak {{{uhc.cfg}}} to your liking
-* Copy it to your server along with {{{uhc_installer.sh}}}
-* Run {{{bash uhc_installer.sh}}} and hope for the best
+* Tweak **uhc.cfg** to your liking
+* Copy it to your server along with **uhc_installer.sh**
+* Run **bash uhc_installer.sh** and hope for the best
