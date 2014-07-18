@@ -23,8 +23,7 @@ to be called *minecraft_server.jar*.
 The server is run in a screen session. If you are already using screen for something else, this *might* cause unexpected behaviours.
 I haven't tested it.
 
-**uhc_install.sh** - handy script for installing everything on a new server. I use this to set up a server on a fresh Ubuntu install on a VPS.
-I suggest reading the script to understand what it does.
+**uhc_installer.sh** - handy script for installing everything on a new server. I use this to set up a server on a fresh Ubuntu install on a VPS. If the config file is used, the script *should* run fully unattended, including downloading Oracle Java (Ubuntu only). Users are advised to read the script carefully and edit it to their liking.
 
 **uhc.cfg** - configuration parameters for uhc_install.sh and uhc.
 
